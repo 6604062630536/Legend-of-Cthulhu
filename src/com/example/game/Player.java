@@ -145,11 +145,32 @@ public class Player extends JPanel implements KeyListener {
 
     // Actions
     public void walk(char dir) {
-        if (dir == 'A' || dir == 'a') { facingLeft = true;  x -= speed; }
-        else if (dir == 'D' || dir == 'd') { facingLeft = false; x += speed; }
+        if (dir == 'A' || dir == 'a') {
+            facingLeft = true;
+            leftPressed = true;
+            rightPressed = false;
+            x -= speed;
+            setState(State.RUN);
+        } else if (dir == 'D' || dir == 'd') {
+            facingLeft = false;
+            rightPressed = true;
+            leftPressed = false;
+            x += speed;
+            setState(State.RUN);
+        }
         clampInsidePanel();
         repaint();
     }
+    public void stopWalking(char dir) {
+        if (dir == 'A' || dir == 'a') leftPressed = false;
+        if (dir == 'D' || dir == 'd') rightPressed = false;
+        if (!leftPressed && !rightPressed && !isAttacking()) {
+            setState(State.IDLE);
+        }
+    }
+
+
+
 
     public void attack() {
         if (state == State.ATTACK1) { comboQueued = true; return; }
