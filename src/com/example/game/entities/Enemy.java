@@ -26,8 +26,9 @@ public class Enemy extends Entity {
     private final Timer timer;
 
     // sounds
-    private final Clip growlClip, deathClip;
+    private final Clip growlClip, deathClip , attackClip;
     private int growlElapsed = 0;
+    private boolean attackSfxArmed = false;
     private static final int GROWL_INTERVAL = 2000;
 
     private enum State { WALK, ATTACK, DEATH }
@@ -49,8 +50,10 @@ public class Enemy extends Entity {
 
         growlClip = SoundManager.loadClip("/assets/sound/small-monster-attack-195712.wav");
         deathClip = SoundManager.loadClip("/assets/sound/goblin-scream-87564.wav");
+        attackClip = SoundManager.loadClip("/assets/sound/mixkit-weak-fast-blow-2145.wav");
         SoundManager.setVolume(growlClip, 0.7f);
         SoundManager.setVolume(deathClip, 0.9f);
+        SoundManager.setVolume(attackClip, 0.7f);
 
         timer = new Timer(16, e -> update(16));
         timer.start();
@@ -68,7 +71,12 @@ public class Enemy extends Entity {
             frameIndex = 0;
             elapsed = 0;
             interval = (s == State.ATTACK) ? HIT_INTERVAL : WALK_INTERVAL;
-            if (s == State.ATTACK) swingUsed = false;
+            if (s == State.ATTACK) {
+                swingUsed = false;
+                attackSfxArmed = false;      
+            } else {
+                attackSfxArmed = false;      
+            }
         }
     }
 
@@ -114,6 +122,14 @@ public class Enemy extends Entity {
             } else if (state == State.ATTACK) {
                 if (frameIndex < hitFrames.length - 1) frameIndex++;
                 else setState(State.WALK); // จบท่าโจมตีแล้วกลับไปเดิน
+            }
+        }
+        
+        if (state == State.ATTACK) {
+            final int HIT_FRAME = 1; // <<-- ปรับให้ตรงกับเฟรมที่คุณใช้ทำดาเมจ
+            if (frameIndex == HIT_FRAME && !attackSfxArmed) {
+                SoundManager.play(attackClip);
+                attackSfxArmed = true;
             }
         }
 

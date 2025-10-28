@@ -68,7 +68,7 @@ public class Player extends Entity {
     // ------------------- ctor -------------------
     // super(maxHp, atk, atkSpd, moveSpeed)
     public Player() {
-        super(100, 10, 3, 8);  // maxHP=100, atk=10, atkSpd=3, speed=5
+        super(100, 100, 3, 8);  // maxHP=100, atk=10, atkSpd=3, speed=5
         setOpaque(false);
 
         // โหลดภาพจากโฟลเดอร์ resources: /assets.Player/....
@@ -247,8 +247,8 @@ public class Player extends Entity {
     public int getYPos() { return y; }
 
     // ถ้า HUD เรียกใช้อยู่
-    public int getMaxHp() { return 100; }          // ให้สอดคล้องกับค่าใน super()
-    public boolean isInvulnerable() { return false; } // ไม่มีเอฟเฟกต์กระพริบอีกแล้ว
+    public int getMaxHp() { return 100; }         
+    public boolean isInvulnerable() { return false; } 
 
     @Override
     public Rectangle getHitBox() {

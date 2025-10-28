@@ -25,7 +25,9 @@ public class Cthulu extends Entity {
     // --- Audio ---
     private final Clip roarClip;
     private final Clip deathClip;
+    private final Clip attackClip; 
     private boolean hasRoared = false;
+    private boolean attackSfxArmed = false;
 
     // --- Loop ---
     private final javax.swing.Timer timer;
@@ -63,10 +65,12 @@ public class Cthulu extends Entity {
         for (int i = 0; i < atk2.length;  i++) atk2[i]  = loadFromBoss("2atk_",  i + 1);
         for (int i = 0; i < death.length; i++) death[i] = loadFromBoss("death_", i + 1);
 
-        roarClip  = SoundManager.loadClip("/assets/sound/monster-growl-6311.wav");
+        roarClip  = SoundManager.loadClip("/assets/sound/awake-the-beast-106445.wav");
         deathClip = SoundManager.loadClip("/assets/sound/monster-growl-6311.wav");
+        attackClip = SoundManager.loadClip("/assets/sound/mixkit-fast-blow-2144.wav");   
         SoundManager.setVolume(roarClip, 0.8f);
         SoundManager.setVolume(deathClip, 0.8f);
+        SoundManager.setVolume(attackClip,0.9f); 
 
         timer = new javax.swing.Timer(16, e -> update(16));
         timer.start();
@@ -167,6 +171,10 @@ public class Cthulu extends Entity {
                 case WALK -> frameIndex %= walk.length; // ✅ ใช้ walk animation จริง
                 case ATTACK1 -> {
                     if (frameIndex == HIT_FRAME_ATK1) swingHitUsed = false;
+                    if (frameIndex == HIT_FRAME_ATK1 && !attackSfxArmed) {
+                        SoundManager.play(attackClip);
+                        attackSfxArmed = true;
+                    }
                     if (frameIndex >= atk1.length) {
                         setState(State.ATTACK2);
                         swingHitUsed = false;
@@ -174,6 +182,10 @@ public class Cthulu extends Entity {
                 }
                 case ATTACK2 -> {
                     if (frameIndex == HIT_FRAME_ATK2) swingHitUsed = false;
+                    if (frameIndex == HIT_FRAME_ATK2 && !attackSfxArmed) {
+                        SoundManager.play(attackClip);
+                        attackSfxArmed = true;
+                    }
                     if (frameIndex >= atk2.length) {
                         setState(State.IDLE);
                     }
@@ -192,6 +204,11 @@ public class Cthulu extends Entity {
             state = s;
             frameIndex = 0;
             elapsed = 0;
+            if (state == State.ATTACK1 || state == State.ATTACK2) {
+                attackSfxArmed = false;
+            } else if (state == State.IDLE || state == State.WALK) {
+                attackSfxArmed = false;
+            }
         }
     }
 
