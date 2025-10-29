@@ -382,7 +382,7 @@ public class GameLauncher extends JFrame {
             }
             
             if (gameDefeated) {
-                String msg = "DEFEAT!";
+                String msg = "DEFEAT";
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 20f));
                 g2.setColor(new Color(220, 60, 60));
                 int wStr = g2.getFontMetrics().stringWidth(msg);
