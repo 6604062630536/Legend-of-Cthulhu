@@ -113,7 +113,7 @@ public class GameLauncher extends JFrame {
         // World constants
         final int GROUND_MARGIN = 50;
         final int WORLD_LEFT = 0;
-        final int WORLD_HALF_R = 928;
+        final int WORLD_HALF_R = 928;    // ✅ จุดเริ่มต้น Cursed Zone
         final int WORLD_RIGHT = 1952;
 
         // Entities
@@ -185,6 +185,7 @@ public class GameLauncher extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 updateGateLogic();
                 updatePlayerBounds();
+                updateDebuffZone();  
                 updateCamera();
                 updateDamageTracking();
                 handleCombat();
@@ -215,6 +216,13 @@ public class GameLauncher extends JFrame {
                 if (px != player.getXPos()) {
                     player.setPosition(px, player.getYPos());
                 }
+            }
+
+            private void updateDebuffZone() {
+                int playerX = player.getXPos();
+                boolean inCursedZone = playerX >= WORLD_HALF_R;
+                
+                player.setDebuffed(inCursedZone);
             }
 
             private void updateCamera() {
@@ -261,16 +269,17 @@ public class GameLauncher extends JFrame {
                     }
                 }
 
-                // Enemies attack player
-                for (Enemy en : enemies) {
-                    if (en.tryHit(player.getHitBox())) {
-                        player.takeDamage(en.getAtk());
+                // Enemies/Boss attack player
+                if (!player.isInvulnerable()) {
+                    for (Enemy en : enemies) {
+                        if (en.tryHit(player.getHitBox())) {
+                            player.takeDamage(en.getAtk());
+                        }
                     }
-                }
 
-                // Boss attacks player
-                if (boss.tryHit(player.getHitBox())) {
-                    player.takeDamage(boss.getAtk());
+                    if (boss.tryHit(player.getHitBox())) {
+                        player.takeDamage(boss.getAtk());
+                    }
                 }
             }
 
@@ -311,6 +320,14 @@ public class GameLauncher extends JFrame {
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             g.drawImage(imgBg, 0, 0, null);
+            
+            // ✅ วาด Cursed Zone Overlay (ม่วงโปร่งแสง)
+            if (leftHalfCleared) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(75, 0, 130, 30));  // สีม่วงเข้มโปร่งแสง
+                g2.fillRect(WORLD_HALF_R, 0, bgWidth - WORLD_HALF_R, bgHeight);
+                g2.dispose();
+            }
         }
 
         @Override
@@ -339,6 +356,13 @@ public class GameLauncher extends JFrame {
             g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
             g2.setColor(Color.WHITE);
             g2.drawString(hp + " / " + maxHp, x + BAR_W - 100, y + BAR_H - 1);
+
+            // ✅ แสดงสถานะ Debuff
+            if (player.isDebuffed()) {
+                g2.setFont(g2.getFont().deriveFont(Font.BOLD, 14f));
+                g2.setColor(new Color(138, 43, 226));
+                g2.drawString("⚠ CURSED ZONE", HUD_X + 10, HUD_Y + 130);
+            }
 
             if (gameWon) {
                 String msg = "VICTORY!";
