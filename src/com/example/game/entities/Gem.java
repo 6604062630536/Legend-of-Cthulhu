@@ -1,25 +1,22 @@
+// ==================== Gem.java ====================
 package com.example.game.entities;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.net.URL;
-import com.example.game.core.SoundManager;
-import javax.sound.sampled.Clip;
+import com.example.game.core.*;
 
 public class Gem extends JComponent {
-
-    private Image[] frames;         // จะเซ็ตตามจำนวนที่โหลดจริง
+    private Image[] frames;
     private int frameCount = 0;
     private int frameIndex = 0;
     private Timer timer = null;
-    private final Clip pickClip;    
+    private final javax.sound.sampled.Clip pickClip;
 
-    // world position
     private int x, y;
-    private int w = 48 * 2, h = 48 * 3;
+    private int w = 96, h = 144;
 
-    // bobbing
+    // Bobbing animation
     private float bobT = 0f;
     private final float bobSpeed = 0.06f;
     private final int bobAmp = 6;
@@ -31,13 +28,13 @@ public class Gem extends JComponent {
         this.x = x;
         this.y = y;
         setOpaque(false);
-        pickClip = SoundManager.loadClip("/assets/sound/3-down-fast-3-106140.wav");
+
+        pickClip = ResourceLoader.loadClip("/assets/sound/3-down-fast-3-106140.wav");
         SoundManager.setVolume(pickClip, 0.9f);
-        
-        // 1) โหลดเฟรมให้เรียบร้อยก่อน
+
         loadFrames();
 
-        // 2) คำนวณขนาดจากเฟรมแรกที่ไม่ใช่ null
+        // Calculate size from first valid frame
         for (int i = 0; i < frameCount; i++) {
             Image f = frames[i];
             if (f != null) {
@@ -47,9 +44,11 @@ public class Gem extends JComponent {
             }
         }
 
-        // 3) เริ่มแอนิเมชันหลังมั่นใจว่ามีเฟรมให้เล่น
-        timer = new javax.swing.Timer(80, e -> {
-            if (vanished) { timer.stop(); return; }
+        timer = new Timer(80, e -> {
+            if (vanished) {
+                timer.stop();
+                return;
+            }
             frameIndex = (frameIndex + 1) % frameCount;
             bobT += bobSpeed;
             repaint();
@@ -58,21 +57,24 @@ public class Gem extends JComponent {
     }
 
     private void loadFrames() {
-        // รองรับได้หลายชื่อไฟล์: gem_1.png, gem_01.png, gem1.png, gem01.png
-        String[][] patterns = new String[][] {
-            {"/assets/gem%d.png","1", "12"},
-        };
-
+        // Try to load gem animation frames
         frames = new Image[12];
         frameCount = 0;
 
-        for (String[] pat : patterns) {
-            int loaded = tryLoadPattern(pat[0]);
-            if (loaded > 0) { frameCount = loaded; break; }
+        // Try pattern: gem1.png, gem2.png, ...
+        for (int i = 1; i <= 12; i++) {
+            String path = String.format("/assets/gem%d.png", i);
+            Image img = ResourceLoader.loadImage(path);
+            if (img != null && img.getWidth(null) > 0) {
+                frames[i - 1] = img;
+                frameCount++;
+            } else {
+                break;
+            }
         }
 
+        // Fallback if no frames loaded
         if (frameCount == 0) {
-            // fallback — เผื่อพาธผิดจะยังเห็นเป็นวงกลม
             frames = new Image[12];
             for (int i = 0; i < 12; i++) {
                 BufferedImage bi = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
@@ -87,52 +89,45 @@ public class Gem extends JComponent {
         }
     }
 
-    private int tryLoadPattern(String pattern) {
-        int count = 0;
-        for (int i = 1; i <= 12; i++) {
-            String path = String.format(pattern, i);
-            URL u = getClass().getResource(path);
-            if (u != null) {
-                frames[i - 1] = new ImageIcon(u).getImage();
-                count++;
-            } else {
-                // ถ้าหาไม่ได้บางเฟรม ให้หยุดที่จำนวนที่โหลดสำเร็จ
-                // และจะเล่นเฉพาะจำนวนที่มีจริง
-                break;
-            }
-        }
-        // ถ้าโหลดได้ 0 เฟรม ให้ล้างค่า (จะลองแพทเทิร์นถัดไป)
-        if (count == 0) {
-            for (int i = 0; i < 12; i++) frames[i] = null;
-        }
-        return count;
-    }
-
     public void setWorldBoundsDimension(int worldW, int worldH) {
         setBounds(0, 0, worldW, worldH);
     }
 
-    public void setPosition(int x, int y) { this.x = x; this.y = y; }
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
 
     public Rectangle getHitBox() {
         int pad = Math.max(0, Math.min(w, h) / 6);
         return new Rectangle(x + pad, y + pad, w - pad * 2, h - pad * 2);
     }
 
-    public boolean isPicked() { return picked; }
-    public boolean isGone()   { return vanished; }
+    public boolean isPicked() {
+        return picked;
+    }
+
+    public boolean isGone() {
+        return vanished;
+    }
 
     public void pick() {
-        if (picked) return;                
-        if (pickClip != null) SoundManager.play(pickClip); 
+        if (picked) return;
+        if (pickClip != null) SoundManager.play(pickClip);
         picked = true;
         vanished = true;
-        try { timer.stop(); } catch (Exception ignore) {}
+        try {
+            timer.stop();
+        } catch (Exception ignore) {
+        }
         repaint();
     }
 
     public void disposeTimers() {
-        try { timer.stop(); } catch (Exception ignore) {}
+        try {
+            timer.stop();
+        } catch (Exception ignore) {
+        }
     }
 
     @Override

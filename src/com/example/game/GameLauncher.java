@@ -1,14 +1,16 @@
+// ==================== GameLauncher.java ====================
 package com.example.game;
 
-import com.example.game.entities.*; // Player, Enemy, Cthulu
+import com.example.game.entities.*;
+import com.example.game.core.*;
 import javax.swing.*;
+import javax.swing.Timer;
+
 import java.awt.*;
 import java.awt.event.*;
-import java.net.URL;
-import javax.sound.sampled.*;
-import java.io.*;
+import javax.sound.sampled.Clip;
 import java.util.*;
-import javax.swing.Timer;
+import java.util.List;
 
 public class GameLauncher extends JFrame {
 
@@ -33,54 +35,20 @@ public class GameLauncher extends JFrame {
             setFocusable(true);
             addKeyListener(this);
 
-            // รูป Title
-            titleImage = loadImage("/assets/Title Screen.png");
-
-            bgmClip = loadClip("/assets/sound/intense-fantasy-soundtrack-201079.wav");
+            titleImage = ResourceLoader.loadImage("/assets/Title Screen.png");
+            bgmClip = ResourceLoader.loadClip("/assets/sound/intense-fantasy-soundtrack-201079.wav");
+            
             if (bgmClip != null) {
                 bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
                 bgmClip.start();
             }
 
-            // กระพริบข้อความ
             blinkTimer = new Timer(500, this);
             blinkTimer.start();
         }
 
-        private Image loadImage(String path) {
-            URL url = getClass().getResource(path);
-            if (url == null) {
-                System.err.println("ไม่พบไฟล์รูป: " + path);
-                return null;
-            }
-            return new ImageIcon(url).getImage();
-        }
-
-        private Clip loadClip(String path) {
-            try (InputStream in = getClass().getResourceAsStream(path)) {
-                if (in == null) {
-                    System.err.println("ไม่พบไฟล์เสียง: " + path);
-                    return null;
-                }
-                AudioInputStream ais = AudioSystem.getAudioInputStream(new BufferedInputStream(in));
-                Clip c = AudioSystem.getClip();
-                c.open(ais);
-                return c;
-            } catch (Exception e) {
-                System.err.println("โหลดเสียงล้มเหลว: " + path + " -> " + e.getMessage());
-                return null;
-            }
-        }
-
         private void stopBGM() {
-            try {
-                if (bgmClip != null) {
-                    if (bgmClip.isRunning())
-                        bgmClip.stop();
-                    bgmClip.close();
-                }
-            } catch (Exception ignore) {
-            }
+            SoundManager.close(bgmClip);
         }
 
         @Override
@@ -109,14 +77,10 @@ public class GameLauncher extends JFrame {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_K) {
-                if (blinkTimer != null)
-                    blinkTimer.stop();
+                if (blinkTimer != null) blinkTimer.stop();
                 stopBGM();
 
-                // โหลดพื้นหลังเวิลด์ (อยู่ที่ /assets/Background.png)
-                URL bgURL = getClass().getResource("/assets/Background.png");
-                Image bgImage = new ImageIcon(bgURL).getImage();
-
+                Image bgImage = ResourceLoader.loadImage("/assets/Background.png");
                 DrawArea game = new DrawArea(bgImage);
                 GameLauncher.this.setContentPane(game);
                 GameLauncher.this.revalidate();
@@ -136,40 +100,40 @@ public class GameLauncher extends JFrame {
 
     // =============== Game Area ===============
     class DrawArea extends JPanel implements KeyListener {
-        // --- Background / world ---
+        // World
         final Image imgBg;
         final int bgWidth, bgHeight;
         float cameraX = 0f;
 
-        // --- HUD ---
+        // HUD
         Image hudIcon;
         final int HUD_X = 12, HUD_Y = 0;
         final int BAR_OFFSET_X = 77, BAR_OFFSET_Y = 83, BAR_W = 110, BAR_H = 14;
 
-        // --- World constants ---
+        // World constants
         final int GROUND_MARGIN = 50;
         final int WORLD_LEFT = 0;
-        final int WORLD_HALF_R = 928; // ขอบเขตสิทธิ์เข้า หลังเคลียร์ศัตรู
-        final int WORLD_RIGHT = 1952; // พื้นหลังของคุณกว้าง 1952
+        final int WORLD_HALF_R = 928;
+        final int WORLD_RIGHT = 1952;
 
-        // --- Entities ---
+        // Entities
         Player player;
-        java.util.List<Enemy> enemies = new java.util.ArrayList<>();
+        List<Enemy> enemies = new ArrayList<>();
         Cthulu boss;
-        Gem gem = null;              
+        Gem gem = null;
         boolean gameWon = false;
-        boolean gameDefeated = false;  
+        boolean gameDefeated = false;
 
-        // gate
+        // Gate system
         boolean leftHalfCleared = false;
         boolean bossActivated = false;
 
-        // damage flags
+        // Damage tracking
         private int lastPlayerFrame = -1;
-        private boolean[] enemyHitApplied; // ต่อศัตรูหลายตัว
+        private boolean[] enemyHitApplied;
         private boolean bossHitApplied = false;
 
-        javax.swing.Timer t = new javax.swing.Timer(16, new Listener());
+        Timer gameTimer = new Timer(16, new GameUpdateListener());
 
         DrawArea(Image img) {
             this.imgBg = img;
@@ -180,15 +144,15 @@ public class GameLauncher extends JFrame {
             setFocusable(true);
             addKeyListener(this);
 
-            hudIcon = new ImageIcon(getClass().getResource("/assets/HealthBar.png")).getImage();
+            hudIcon = ResourceLoader.loadImage("/assets/HealthBar.png");
 
-            // --- Create entities ---
+            // Create player
             player = new Player();
             player.setBounds(0, 0, bgWidth, bgHeight);
             add(player);
 
-            // 👉 สร้างศัตรู “ในครึ่งซ้าย” และวาง ให้ติดพื้น
-            int[] spawnX = { 520, 700, 860 }; // ปรับตำแหน่งตามต้องการ (ไม่เกิน 928)
+            // Create enemies
+            int[] spawnX = {520, 700, 860};
             for (int x : spawnX) {
                 Enemy e = new Enemy(x, player);
                 e.setBounds(0, 0, bgWidth, bgHeight);
@@ -198,80 +162,85 @@ public class GameLauncher extends JFrame {
             }
             enemyHitApplied = new boolean[enemies.size()];
 
-            // บอสยังเกิดขวาสุดไว้ก่อน (จะสู้เมื่อเดินไปถึงครึ่งขวา)
+            // Create boss
             boss = new Cthulu(player);
             boss.setBounds(0, 0, bgWidth, bgHeight);
             boss.setPosition(WORLD_RIGHT - Cthulu.FRAME_W, bgHeight - Cthulu.FRAME_H - GROUND_MARGIN + 35);
             add(boss);
 
-            // snap ให้ทุกตัว “ติดพื้น” หลังได้ขนาด panel จริง
+            // Snap entities to ground
             SwingUtilities.invokeLater(() -> {
                 player.forceSnapToGround(bgHeight, GROUND_MARGIN);
-                for (Enemy e : enemies)
+                for (Enemy e : enemies) {
                     e.snapToGround();
+                }
                 requestFocusInWindow();
             });
 
-            t.start();
+            gameTimer.start();
         }
 
-        class Listener implements ActionListener {
+        class GameUpdateListener implements ActionListener {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // --- Gate: จำกัดขอบขวาตามสถานะเคลียร์ ---
+                updateGateLogic();
+                updatePlayerBounds();
+                updateCamera();
+                updateDamageTracking();
+                handleCombat();
+                handleGemSpawn();
+                handleGameEnd();
+                repaint();
+            }
+
+            private void updateGateLogic() {
                 if (!leftHalfCleared) {
-                    // ถ้าฆ่าศัตรูครบแล้ว เปิดประตู
                     boolean anyAlive = enemies.stream().anyMatch(en -> !en.isGone() && !en.isDead());
                     if (!anyAlive) {
                         leftHalfCleared = true;
-                        // ✅ ปลดล็อคบอส + ให้ร้อง 1 ครั้ง
                         if (!bossActivated) {
-                            boss.setChaseEnabled(true); // ปลด chaseLocked
-                            boss.triggerRoar(); // ร้องครั้งแรก
+                            boss.setChaseEnabled(true);
+                            boss.triggerRoar();
                             bossActivated = true;
                         }
                     }
                 }
+            }
 
-                // --- ปรับ X ของ player ไม่ให้ข้ามประตูก่อนเวลา ---
+            private void updatePlayerBounds() {
                 int allowedRight = leftHalfCleared ? (WORLD_RIGHT - Player.FRAME_W) : (WORLD_HALF_R - Player.FRAME_W);
-                // clamp แบบ manual (เพราะ player.walk ใช้ความกว้าง panel ซึ่งเป็น world อยู่แล้ว)
                 int px = player.getXPos();
-                if (px < WORLD_LEFT)
-                    px = WORLD_LEFT;
-                if (px > allowedRight)
-                    px = allowedRight;
-                // set กลับ (ให้เดินชนกำแพงนิ่ม ๆ)
-                // เคล็ดลับ: ใช้ method เดิมไม่ได้ ก็เลื่อนด้วย walk เพื่ออยู่ใน state RUN; ที่นี่ตั้งตรง ๆ ก็พอ
-                // (สมมุติ Player มี setter X; ถ้าไม่มี ให้เพิ่มสั้น ๆ)
-                try {
-                    java.lang.reflect.Field fx = Player.class.getDeclaredField("x");
-                    fx.setAccessible(true);
-                    fx.setInt(player, px);
-                } catch (Exception ignore) {
+                px = Math.max(WORLD_LEFT, Math.min(px, allowedRight));
+                
+                if (px != player.getXPos()) {
+                    player.setPosition(px, player.getYPos());
                 }
+            }
 
-                // --- Camera follow ---
+            private void updateCamera() {
                 int playerCenter = player.getXPos() + Player.FRAME_W / 2;
                 int halfScreen = Math.max(1, getWidth() / 2);
                 cameraX = playerCenter - halfScreen;
                 cameraX = Math.max(0, Math.min(cameraX, Math.max(0, bgWidth - getWidth())));
+            }
 
-                // --- รีเซ็ตธง hit ต่อ “แต่ละศัตรู” เมื่อเริ่มแอนิเมชันโจมตีชุดใหม่ ---
+            private void updateDamageTracking() {
                 if (player.isAttacking()) {
                     int cur = player.getCurrentFrameIndex();
                     if (cur < lastPlayerFrame) {
-                        java.util.Arrays.fill(enemyHitApplied, false);
+                        Arrays.fill(enemyHitApplied, false);
                         bossHitApplied = false;
                     }
                     lastPlayerFrame = cur;
                 } else {
-                    java.util.Arrays.fill(enemyHitApplied, false);
+                    Arrays.fill(enemyHitApplied, false);
                     bossHitApplied = false;
                     lastPlayerFrame = -1;
                 }
+            }
 
-                // --- Player → Enemies ---
+            private void handleCombat() {
+                // Player attacks enemies
                 if (player.isAttacking() && player.isAtHitFrame()) {
                     for (int i = 0; i < enemies.size(); i++) {
                         Enemy en = enemies.get(i);
@@ -283,32 +252,30 @@ public class GameLauncher extends JFrame {
                     }
                 }
 
-                // ✅ --- Player → Boss ---
+                // Player attacks boss
                 if (player.isAttacking() && player.isAtHitFrame()) {
                     if (!bossHitApplied && boss != null && !boss.isGone() && !boss.isDead()
                             && player.getHitBox().intersects(boss.getHitBox())) {
-                        // โจมตีครั้งที่ 2 ให้บอสติด freeze
-                        if (player.isInAttack2()) {
-                            boss.takeDamageFromPlayer(player.getAtk(), true);
-                        } else {
-                            boss.takeDamageFromPlayer(player.getAtk(), false);
-                        }
+                        boss.takeDamageFromPlayer(player.getAtk(), player.isInAttack2());
                         bossHitApplied = true;
                     }
                 }
 
-                // --- Enemies/Boss → Player ---
-                if (!player.isInvulnerable()) {
-                    for (Enemy en : enemies) {
-                        if (en.tryHit(player.getHitBox()))
-                            player.takeDamage(en.getAtk());
+                // Enemies attack player
+                for (Enemy en : enemies) {
+                    if (en.tryHit(player.getHitBox())) {
+                        player.takeDamage(en.getAtk());
                     }
-                    if (boss.tryHit(player.getHitBox()))
-                        player.takeDamage(boss.getAtk());
                 }
-                
+
+                // Boss attacks player
+                if (boss.tryHit(player.getHitBox())) {
+                    player.takeDamage(boss.getAtk());
+                }
+            }
+
+            private void handleGemSpawn() {
                 if (gem == null && boss.isDead() && boss.isGone()) {
-                    // ให้วางเจมเหนือพื้นเล็กน้อย
                     int gemX = boss.getHitBox().x + boss.getHitBox().width / 2 - 16;
                     int groundY = bgHeight - GROUND_MARGIN - 16;
                     int gemY = Math.min(groundY, boss.getHitBox().y + boss.getHitBox().height - 64);
@@ -316,30 +283,30 @@ public class GameLauncher extends JFrame {
                     gem = new Gem(gemX, gemY);
                     gem.setWorldBoundsDimension(bgWidth, bgHeight);
                     gem.setOpaque(false);
-                    add(gem);        
+                    add(gem);
                 }
-             // ----- เก็บเจมเพื่อจบเกม -----
+
                 if (!gameWon && gem != null && !gem.isPicked()) {
                     if (player.getHitBox().intersects(gem.getHitBox())) {
                         gem.pick();
                         gameWon = true;
-                        t.stop();  
+                        gameTimer.stop();
                     }
                 }
+            }
+
+            private void handleGameEnd() {
                 if (!gameDefeated && player.isDead() && player.isGone()) {
                     gameDefeated = true;
-
-                    try { t.stop(); } catch (Exception ignore) {}
+                    try {
+                        gameTimer.stop();
+                    } catch (Exception ignore) {
+                    }
                     repaint();
-                    return; 
                 }
-
-
-                repaint();
             }
         }
 
-        // --- Painting ---
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -349,7 +316,7 @@ public class GameLauncher extends JFrame {
         @Override
         public void paint(Graphics g) {
             Graphics2D world = (Graphics2D) g.create();
-            world.translate(-cameraX, 0); // กล้อง
+            world.translate(-cameraX, 0);
             super.paint(world);
             world.dispose();
             drawHUD((Graphics2D) g);
@@ -372,15 +339,15 @@ public class GameLauncher extends JFrame {
             g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
             g2.setColor(Color.WHITE);
             g2.drawString(hp + " / " + maxHp, x + BAR_W - 100, y + BAR_H - 1);
-            
+
             if (gameWon) {
-                String msg = "VICTORY! ";
+                String msg = "VICTORY!";
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 24f));
                 g2.setColor(new Color(255, 255, 255));
                 int w = g2.getFontMetrics().stringWidth(msg);
                 g2.drawString(msg, (getWidth() - w) / 2, 60);
             }
-            
+
             if (gameDefeated) {
                 String msg = "DEFEAT";
                 g2.setFont(g2.getFont().deriveFont(Font.BOLD, 20f));
@@ -388,11 +355,8 @@ public class GameLauncher extends JFrame {
                 int wStr = g2.getFontMetrics().stringWidth(msg);
                 g2.drawString(msg, (getWidth() - wStr) / 2, 60);
             }
-
-
         }
 
-        // --- KeyListener: ส่งต่อให้ Player คุมการเคลื่อนที่ทันที ---
         @Override
         public void keyPressed(KeyEvent e) {
             player.onKeyPressed(e.getKeyCode());

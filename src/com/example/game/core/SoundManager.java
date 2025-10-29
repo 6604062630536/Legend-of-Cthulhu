@@ -1,23 +1,10 @@
+// ==================== SoundManager.java ====================
 package com.example.game.core;
 
 import javax.sound.sampled.*;
-import java.io.*;
 
 public class SoundManager {
-    public static Clip loadClip(String path) {
-        try (InputStream audioSrc = SoundManager.class.getResourceAsStream(path)) {
-            if (audioSrc == null) return null;
-            InputStream bufferedIn = new BufferedInputStream(audioSrc);
-            AudioInputStream ais = AudioSystem.getAudioInputStream(bufferedIn);
-            Clip clip = AudioSystem.getClip();
-            clip.open(ais);
-            return clip;
-        } catch (Exception e) {
-            System.err.println("โหลดเสียงไม่สำเร็จ: " + path + " → " + e.getMessage());
-            return null;
-        }
-    }
-
+    
     public static void play(Clip clip) {
         if (clip == null) return;
         if (clip.isRunning()) clip.stop();
@@ -34,6 +21,19 @@ public class SoundManager {
             gain.setValue(Math.min(gainValue, gain.getMaximum()));
         } catch (Exception e) {
             System.err.println("⚠️ ปรับเสียงไม่ได้: " + e.getMessage());
+        }
+    }
+    
+    public static void stop(Clip clip) {
+        if (clip != null && clip.isRunning()) {
+            clip.stop();
+        }
+    }
+    
+    public static void close(Clip clip) {
+        if (clip != null) {
+            stop(clip);
+            clip.close();
         }
     }
 }
