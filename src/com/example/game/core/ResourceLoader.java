@@ -1,4 +1,3 @@
-// ==================== ResourceLoader.java ====================
 package com.example.game.core;
 
 import javax.sound.sampled.*;

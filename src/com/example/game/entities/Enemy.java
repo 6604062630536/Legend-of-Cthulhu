@@ -1,4 +1,4 @@
-// ==================== Enemy.java ====================
+
 package com.example.game.entities;
 
 import com.example.game.core.*;
@@ -33,9 +33,8 @@ public class Enemy extends AnimatedEntity {
         addAnimation(ATTACK, new Animation(
             ResourceLoader.loadAnimationFrames("/assets/Enemy", "_hit_minion_c", 3, FRAME_W, FRAME_H), 80, false));
         
-        // Death uses same as attack for now
         addAnimation(DEATH, new Animation(
-            ResourceLoader.loadAnimationFrames("/assets/Enemy", "_hit_minion_c", 3, FRAME_W, FRAME_H), 80, false));
+            ResourceLoader.loadAnimationFrames("/assets/Enemy", "_die_minion_c", 3, FRAME_W, FRAME_H), 80, false));
         
         // Load sounds
         addSound("growl", "/assets/sound/small-monster-attack-195712.wav", 0.7f);
@@ -82,7 +81,7 @@ public class Enemy extends AnimatedEntity {
             return;
         }
 
-        // AI - Don't interrupt attack
+
         if (!ATTACK.equals(currentState) && target != null) {
             int dx = target.getXPos() - x;
             facingLeft = dx < 0;

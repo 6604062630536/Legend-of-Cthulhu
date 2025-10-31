@@ -1,4 +1,3 @@
-// ==================== Animation.java ====================
 package com.example.game.core;
 
 import java.awt.*;

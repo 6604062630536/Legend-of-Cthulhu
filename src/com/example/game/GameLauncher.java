@@ -1,4 +1,4 @@
-// ==================== GameLauncher.java ====================
+
 package com.example.game;
 
 import com.example.game.entities.*;
@@ -113,7 +113,7 @@ public class GameLauncher extends JFrame {
         // World constants
         final int GROUND_MARGIN = 50;
         final int WORLD_LEFT = 0;
-        final int WORLD_HALF_R = 928;    // ✅ จุดเริ่มต้น Cursed Zone
+        final int WORLD_HALF_R = 928;   
         final int WORLD_RIGHT = 1952;
 
         // Entities
@@ -121,6 +121,7 @@ public class GameLauncher extends JFrame {
         List<Enemy> enemies = new ArrayList<>();
         Cthulu boss;
         Gem gem = null;
+        
         boolean gameWon = false;
         boolean gameDefeated = false;
 

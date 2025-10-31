@@ -115,8 +115,8 @@ public class Cthulu extends AnimatedEntity {
         );
 
         if (atkBox.intersects(targetHitBox)) {
-            hitAppliedThisAttack = true;  // ✅ ทำเครื่องหมายว่าโดนแล้ว
-            System.out.println("Boss hit player! ATK: " + atk);
+            hitAppliedThisAttack = true; 
+
             return true;
         }
         return false;

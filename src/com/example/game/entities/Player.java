@@ -1,4 +1,3 @@
-// ==================== Player.java ====================
 package com.example.game.entities;
 
 import com.example.game.core.*;
@@ -36,7 +35,7 @@ public class Player extends AnimatedEntity {
     private int comboGraceRemain = 0;
 
     public Player() {
-        super(100, 20, 3, 8);
+        super(100, 15, 3, 8);
         
         // Load animations
         addAnimation(IDLE, new Animation(
@@ -153,8 +152,6 @@ public class Player extends AnimatedEntity {
         
         invincible = true;
         invincibleElapsed = 0;
-        
-        System.out.println("Player took " + real + " damage. HP: " + hp + "/" + maxHp);
         
         if (hp <= 0) onDeath();
     }

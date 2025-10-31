@@ -1,4 +1,3 @@
-// ==================== Gem.java ====================
 package com.example.game.entities;
 
 import javax.swing.*;
